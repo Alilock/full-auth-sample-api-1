@@ -1,77 +1,53 @@
 const { User } = require("../models/User");
 const { confirmCodeEmail } = require("../utils/emailService");
-
+const jwt = require('jsonwebtoken');
 
 const userController = {
 
-
-    register: (req, res) => {
-        //Öncelikle kullanıcının gönderdiği email e bakıp db olup olmadığını kontrol ediyorum
-
-        User.findOne({ email: req.body.email })
-            .then(data => {
-                if (!data) {
-                    //Bir adet random code üretip DB YE BASIYORUM! Bu confirm code kullanıcıya email olarak da gidecek
-
-                    var randomCode = Math.floor(Math.random() * 10000);
-
-                    //Ürettiğim random code email olarak kullanıcıya atıyorum (endpointte email validation olmalı!)
-                    confirmCodeEmail(req.body.email, randomCode)
-
-                    var user = new User({
-                        email: req.body.email,
-                        password: req.body.password,
-                        code: randomCode
-                    });
-
-                    user.save()
-                        .then(saveRes => {
-                            res.json(saveRes)
-                        })
-                        .catch(err => {
-                            res.status(500).json(err)
-                        })
-                }
-                else {
-                    res.json({ "msg": "Bu email sisteme kayıtlı!" })
-                }
-            })
-
-    },
     confirmCode: (req, res) => {
 
         User.findOne({ email: req.body.email, code: req.body.code })
             .then(data => {
                 if (data) {
-                    res.json({ email: req.body.email })
+                    let token = jwt.sign({ email: req.body.email }, 'salam123', {
+                        algorithm: "HS256",
+                        expiresIn: "30d",
+                        issuer: 'iron maiden ın tokenı'
+                    })
+                    data.isConfirm = true
+                    data.save()
+                    res.json({ email: req.body.email, token })
                 }
                 else {
                     res.status(404).json({ "msg": "Confirm Code error" })
                 }
             })
             .catch(err => {
-                res.status(500).send("Mongo error!")
+                res.status(500).send("Mongo error!", err.message)
             })
     },
-    login: (req, res) => {
-
-        User.findOne({ email: req.body.email, password: req.body.password })
-            .then(data => {
+    auth: (req, res) => {
+        const randomCode = Math.floor(Math.random() * 10000);
+        User.findOne({ email: req.body.email })
+            .then(async (data) => {
                 if (data) {
-
-                    var randomCode = Math.floor(Math.random() * 10000);
                     data.code = randomCode;
-                    data.save();
+                    await data.save();
 
                     confirmCodeEmail(req.body.email, randomCode);
                     res.json({ email: req.body.email })
 
                 }
                 else {
-                    res.status(404).json({ "msg": "Email or password error" })
+                    confirmCodeEmail(req.body.email, randomCode);
+                    const newUser = new User({
+                        email: req.body.email,
+                        code: randomCode
+                    })
+                    newUser.save()
+                    res.json({ email: newUser.email })
                 }
             })
-
     },
     forgotPassword: (req, res) => {
         User.findOne({ email: req.body.email })
@@ -109,6 +85,14 @@ const userController = {
                 res.status(500).json(err)
             })
 
+    },
+    getUser: (req, res) => {
+        let data = req.headers.authorization.split(' ');
+        const email = jwt.decode(data[1]).email
+        res.json({
+            text: `gizli melumat, mailin uzunlugu ${email.length} ${email}`
+        })
+        console.log('sa', email);
     }
 
 }

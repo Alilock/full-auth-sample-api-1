@@ -7,18 +7,18 @@ const transporter = nodemailer.createTransport({
     port: 465,
     secure: true,
     auth: {
-        type:'login',
-        user: "c8657545@gmail.com",
-        pass: "bcozssymjajpqicg",
+        type: 'login',
+        user: "haqqinnyolu@gmail.com",
+        pass: "dkdsnabieekwljda",
     },
 });
 
-function confirmCodeEmail(userEMail, confirmCode){
+function confirmCodeEmail(userEMail, confirmCode) {
     transporter.sendMail({
-        from: 'c8657545@gmail.com',
-        to: userEMail, 
+        from: 'haqqinnyolu@gmail.com',
+        to: userEMail,
         subject: "Confirm Code",
-        text: "için confirm code: " + confirmCode, 
+        text: "için confirm code: " + confirmCode,
     });
 }
 
